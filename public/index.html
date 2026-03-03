@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marine Parts Business Manager</title>
+<style>
+:root{
+  --navy:#0a1628;--navy-light:#112240;--blue:#1e40af;--blue-light:#3b82f6;
+  --teal:#0891b2;--green:#16a34a;--green-light:#22c55e;--red:#dc2626;
+  --red-light:#ef4444;--orange:#ea580c;
+  --gray-50:#f8fafc;--gray-100:#f1f5f9;--gray-200:#e2e8f0;--gray-300:#cbd5e1;
+  --gray-400:#94a3b8;--gray-500:#64748b;--gray-600:#475569;--gray-700:#334155;
+  --gray-800:#1e293b;--gray-900:#0f172a;--white:#fff;
+  --sidebar-w:240px;--sidebar-c:64px;
+  --shadow:0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:0 4px 6px rgba(0,0,0,.07),0 2px 4px rgba(0,0,0,.06);
+  --shadow-lg:0 10px 15px rgba(0,0,0,.1),0 4px 6px rgba(0,0,0,.05);
+  --radius:8px;--radius-lg:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--gray-50);color:var(--gray-800);min-height:100vh}
+.app{display:flex;min-height:100vh}
+
+/* Sidebar */
+.sidebar{width:var(--sidebar-w);background:var(--navy);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:width .2s;overflow:hidden}
+.sidebar.collapsed{width:var(--sidebar-c)}
+.sidebar-header{padding:20px 16px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:12px;min-height:72px}
+.sidebar-logo{font-size:24px;flex-shrink:0;width:32px;text-align:center}
+.sidebar-title{color:#fff;font-weight:700;font-size:15px;line-height:1.3;white-space:nowrap}
+.sidebar-title span{color:var(--blue-light)}
+.sidebar.collapsed .sidebar-title{display:none}
+.sidebar-nav{flex:1;padding:12px 0;list-style:none;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:12px;padding:10px 16px;color:rgba(255,255,255,.65);cursor:pointer;transition:all .15s;border-left:3px solid transparent;white-space:nowrap}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav-item.active{background:rgba(59,130,246,.15);color:var(--blue-light);border-left-color:var(--blue-light)}
+.nav-icon{font-size:18px;flex-shrink:0;width:24px;text-align:center}
+.nav-label{font-size:14px;font-weight:500}
+.sidebar.collapsed .nav-label{display:none}
+.sidebar-bottom{padding:16px;border-top:1px solid rgba(255,255,255,.08)}
+.sidebar.collapsed .sidebar-bottom{display:none}
+.sb-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;color:rgba(255,255,255,.5);font-size:12px;white-space:nowrap}
+.sb-row .val{color:var(--green-light);font-weight:600}
+.sb-row .val.neg{color:var(--red-light)}
+.sidebar-toggle{position:absolute;top:24px;right:-12px;width:24px;height:24px;background:var(--blue);border:none;border-radius:50%;color:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;z-index:101;box-shadow:var(--shadow)}
+
+/* Main content */
+.main-content{flex:1;margin-left:var(--sidebar-w);transition:margin-left .2s;min-height:100vh}
+.main-content.expanded{margin-left:var(--sidebar-c)}
+
+/* Sections */
+.section{display:none;padding:24px}
+.section.active{display:block}
+
+/* Page header */
+.page-header{margin-bottom:24px;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.page-title{font-size:22px;font-weight:700;color:var(--gray-900)}
+.page-subtitle{font-size:14px;color:var(--gray-500);margin-top:2px}
+
+/* Cards */
+.card{background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);box-shadow:var(--shadow);padding:20px}
+.card-title{font-size:14px;font-weight:600;color:var(--gray-700);margin-bottom:16px}
+
+/* Stats grid */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:#fff;border-radius:var(--radius-lg);border:1px solid var(--gray-200);box-shadow:var(--shadow);padding:20px}
+.stat-label{font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.stat-value{font-size:26px;font-weight:700;color:var(--gray-900)}
+.stat-value.green{color:var(--green)}
+.stat-value.red{color:var(--red)}
+.stat-value.blue{color:var(--blue)}
+.stat-sub{font-size:12px;color:var(--gray-500);margin-top:4px}
+
+/* Grid */
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+
+/* Tables */
+.table-wrapper{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;padding:10px 12px;background:var(--gray-50);color:var(--gray-600);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--gray-200);white-space:nowrap}
+td{padding:11px 12px;border-bottom:1px solid var(--gray-100);color:var(--gray-700)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--gray-50)}
+tfoot td{background:var(--gray-50);font-weight:600;color:var(--gray-800);border-top:2px solid var(--gray-200);border-bottom:none}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge-green{background:#dcfce7;color:#15803d}
+.badge-blue{background:#dbeafe;color:#1d4ed8}
+.badge-orange{background:#ffedd5;color:#c2410c}
+.badge-red{background:#fee2e2;color:#b91c1c}
+.badge-gray{background:var(--gray-100);color:var(--gray-600)}
+/* Category badges */
+.cat-boat-trailer{background:#dbeafe;color:#1d4ed8}
+.cat-outboard-engine{background:#dcfce7;color:#15803d}
+.cat-boat{background:#ccfbf1;color:#0f766e}
+.cat-motor-parts{background:#fef3c7;color:#92400e}
+.cat-trailer-parts{background:#f3e8ff;color:#7e22ce}
+.cat-electronics{background:#ffe4e6;color:#be123c}
+.cat-accessories{background:#ffedd5;color:#c2410c}
+.cat-other{background:var(--gray-100);color:var(--gray-600)}
+/* Condition badges */
+.cond-excellent{background:#dcfce7;color:#15803d}
+.cond-good{background:#dbeafe;color:#1d4ed8}
+.cond-fair{background:#fef3c7;color:#92400e}
+.cond-poor{background:#ffedd5;color:#c2410c}
+.cond-parts-only{background:#fee2e2;color:#b91c1c}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius);font-size:14px;font-weight:500;cursor:pointer;border:none;transition:all .15s;white-space:nowrap;text-decoration:none}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover:not(:disabled){background:#1e3a8a}
+.btn-success{background:var(--green);color:#fff}
+.btn-success:hover:not(:disabled){background:#15803d}
+.btn-danger{background:var(--red);color:#fff}
+.btn-danger:hover:not(:disabled){background:#b91c1c}
+.btn-ghost{background:transparent;color:var(--gray-600);border:1px solid var(--gray-300)}
+.btn-ghost:hover:not(:disabled){background:var(--gray-50)}
+.btn-sm{padding:5px 10px;font-size:12px}
+
+/* Toolbar */
+.toolbar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.toolbar-left{flex:1;display:flex;gap:8px;flex-wrap:wrap}
+.search-input{padding:8px 12px;border:1px solid var(--gray-300);border-radius:var(--radius);font-size:14px;color:var(--gray-800);background:#fff}
+.search-input:focus{outline:none;border-color:var(--blue-light);box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+select.search-input{cursor:pointer}
+
+/* Forms */
+.form-group{margin-bottom:16px}
+.form-label{display:block;font-size:13px;font-weight:500;color:var(--gray-700);margin-bottom:6px}
+.form-control{width:100%;padding:8px 12px;border:1px solid var(--gray-300);border-radius:var(--radius);font-size:14px;color:var(--gray-800);background:#fff;transition:border-color .15s}
+.form-control:focus{outline:none;border-color:var(--blue-light);box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-hint{font-size:12px;color:var(--gray-500);margin-top:4px}
+textarea.form-control{resize:vertical}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);width:100%;max-width:560px;max-height:90vh;overflow-y:auto}
+.modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-size:16px;font-weight:700;color:var(--gray-900)}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--gray-400);padding:4px;line-height:1}
+.modal-close:hover{color:var(--gray-700)}
+.modal-body{padding:20px 24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--gray-200);display:flex;gap:8px;justify-content:flex-end}
+
+/* Profit preview */
+.profit-preview{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+.pp-row{display:flex;justify-content:space-between;padding:4px 0;font-size:14px;color:var(--gray-700)}
+.pp-total{border-top:1px solid var(--gray-300);margin-top:8px;padding-top:8px;font-weight:700;font-size:15px}
+.profit-val.profit{color:var(--green)}
+.profit-val.loss{color:var(--red)}
+
+/* Empty state */
+.empty-state{text-align:center;padding:60px 20px;color:var(--gray-500)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.empty-state h3{font-size:16px;font-weight:600;color:var(--gray-700);margin-bottom:6px}
+
+/* Progress bars */
+.pb-wrap{margin-bottom:10px}
+.pb-header{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;color:var(--gray-600)}
+.pb-bg{background:var(--gray-100);border-radius:999px;height:7px;overflow:hidden}
+.pb-fill{height:100%;border-radius:999px;background:var(--blue);min-width:2px}
+.pb-fill.green{background:var(--green)}
+.pb-fill.red{background:var(--red)}
+
+/* Mini chart */
+.mini-chart{display:flex;align-items:flex-end;gap:3px;height:60px}
+.mini-bar{flex:1;border-radius:3px 3px 0 0;min-height:2px;background:var(--blue-light);position:relative}
+.mini-bar.neg{background:var(--red-light)}
+.mini-bar:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:var(--gray-800);color:#fff;padding:4px 8px;border-radius:4px;font-size:11px;white-space:nowrap;z-index:10;pointer-events:none}
+.mini-labels{display:flex;gap:3px;margin-top:4px}
+.mini-label{flex:1;text-align:center;font-size:9px;color:var(--gray-400)}
+
+/* Alert */
+.alert{padding:10px 14px;border-radius:var(--radius);font-size:13px;margin-top:12px}
+.alert-danger{background:#fee2e2;border:1px solid #fca5a5;color:#991b1b}
+.alert-success{background:#dcfce7;border:1px solid #86efac;color:#14532d}
+.alert-info{background:#dbeafe;border:1px solid #93c5fd;color:#1e40af}
+
+/* Calc tabs */
+.calc-tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap}
+.calc-tab{padding:8px 14px;border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--gray-300);background:#fff;color:var(--gray-600);transition:all .15s}
+.calc-tab.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.calc-tab:hover:not(.active){background:var(--gray-50)}
+.calc-section{display:none}
+.calc-section.active{display:block}
+
+/* Result grid */
+.result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:16px}
+.result-item{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius);padding:14px;text-align:center}
+.result-label{font-size:11px;color:var(--gray-500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.result-value{font-size:20px;font-weight:700;color:var(--gray-900)}
+.result-value.green{color:var(--green)}
+.result-value.red{color:var(--red)}
+.result-value.blue{color:var(--blue)}
+
+/* Month row */
+.month-row{display:grid;grid-template-columns:50px 1fr 110px;align-items:center;gap:10px;margin-bottom:8px;font-size:12px}
+.month-amounts{text-align:right}
+
+/* Top sale */
+.top-sale{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--gray-100)}
+.top-sale:last-child{border-bottom:none}
+.rank-badge{width:26px;height:26px;border-radius:50%;background:var(--gray-100);color:var(--gray-600);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rank-badge.gold{background:#fef3c7;color:#92400e}
+.rank-badge.silver{background:#f1f5f9;color:#475569}
+.rank-badge.bronze{background:#ffedd5;color:#c2410c}
+
+/* List item */
+.list-item{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--gray-100);gap:8px}
+.list-item:last-child{border-bottom:none}
+.li-name{font-size:13px;font-weight:500;color:var(--gray-800)}
+.li-sub{font-size:11px;color:var(--gray-500);margin-top:1px}
+.li-amount{font-size:14px;font-weight:600;flex-shrink:0}
+
+/* Actions */
+.actions{display:flex;gap:4px;flex-wrap:nowrap}
+
+/* Portfolio */
+.pf-item{display:grid;grid-template-columns:1fr 1fr 32px;gap:8px;margin-bottom:8px;align-items:center}
+
+/* Responsive */
+@media(max-width:768px){
+  .sidebar{width:var(--sidebar-c)}
+  .sidebar .nav-label,.sidebar .sidebar-title,.sidebar .sidebar-bottom{display:none}
+  .main-content{margin-left:var(--sidebar-c)}
+  .form-row{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:480px){
+  .section{padding:16px 12px}
+  .stats-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Sidebar -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">&#9875;</div>
+    <div class="sidebar-title">Marine<br><span>Parts Manager</span></div>
+  </div>
+  <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">&#8249;</button>
+  <ul class="sidebar-nav">
+    <li><div class="nav-item active" data-sec="dashboard" onclick="navigate('dashboard')"><span class="nav-icon">&#128202;</span><span class="nav-label">Dashboard</span></div></li>
+    <li><div class="nav-item" data-sec="inventory" onclick="navigate('inventory')"><span class="nav-icon">&#128230;</span><span class="nav-label">Inventory</span></div></li>
+    <li><div class="nav-item" data-sec="sales" onclick="navigate('sales')"><span class="nav-icon">&#128176;</span><span class="nav-label">Sales</span></div></li>
+    <li><div class="nav-item" data-sec="reports" onclick="navigate('reports')"><span class="nav-icon">&#128200;</span><span class="nav-label">Reports</span></div></li>
+    <li><div class="nav-item" data-sec="calculator" onclick="navigate('calculator')"><span class="nav-icon">&#129518;</span><span class="nav-label">Calculator</span></div></li>
+  </ul>
+  <div class="sidebar-bottom" id="sidebar-bottom">
+    <div class="sb-row"><span>In Stock</span><span class="val" id="sb-stock">0</span></div>
+    <div class="sb-row"><span>Total Profit</span><span class="val" id="sb-profit">$0.00</span></div>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<main class="main-content" id="main-content">
+  <section class="section active" id="section-dashboard"><div id="dashboard-content"></div></section>
+  <section class="section" id="section-inventory"><div id="inventory-content"></div></section>
+  <section class="section" id="section-sales"><div id="sales-content"></div></section>
+  <section class="section" id="section-reports"><div id="reports-content"></div></section>
+  <section class="section" id="section-calculator"><div id="calculator-content"></div></section>
+</main>
+
+</div><!-- /app -->
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-title"></h2>
+      <button class="modal-close" onclick="closeModal()">&#10005;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<script>
+// ---- Constants ----
+const CATS=['Boat Trailer','Outboard Engine','Boat','Motor Parts','Trailer Parts','Electronics','Accessories','Other'];
+const CONDS=['Excellent','Good','Fair','Poor','Parts Only'];
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const SK='marine_parts_data';
+
+function catCls(c){return'cat-'+(c||'Other').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z-]/g,'')}
+function condCls(c){return'cond-'+(c||'').toLowerCase().replace(/\s+/g,'-').replace(/[^a-z-]/g,'')}
+
+// ---- State ----
+let DB={inventory:[],sales:[]};
+
+function loadDB(){
+  try{const r=localStorage.getItem(SK);if(r){DB=JSON.parse(r)}
+  DB.inventory=DB.inventory||[];DB.sales=DB.sales||[];
+  }catch(e){DB={inventory:[],sales:[]}}
+}
+function saveDB(){localStorage.setItem(SK,JSON.stringify(DB));updateSB()}
+
+// ---- Data ops ----
+function addItem(d){
+  d.id=Date.now();d.status='in_stock';d.createdAt=new Date().toISOString();
+  d.purchasePrice=parseFloat(d.purchasePrice)||0;
+  DB.inventory.push(d);saveDB();
+}
+function updateItem(id,u){
+  const i=DB.inventory.findIndex(x=>x.id===id);
+  if(i>=0){if(u.purchasePrice!==undefined)u.purchasePrice=parseFloat(u.purchasePrice)||0;
+  DB.inventory[i]={...DB.inventory[i],...u};saveDB()}
+}
+function deleteItem(id){
+  DB.inventory=DB.inventory.filter(x=>x.id!==id);
+  DB.sales=DB.sales.filter(x=>x.inventoryId!==id);saveDB();
+}
+function recordSale(invId,info){
+  const item=DB.inventory.find(x=>x.id===invId);if(!item)return;
+  const sp=parseFloat(info.salePrice)||0;
+  DB.sales.push({id:Date.now(),inventoryId:invId,itemName:item.name,category:item.category,
+    purchasePrice:item.purchasePrice,salePrice:sp,profit:sp-item.purchasePrice,
+    saleDate:info.saleDate,buyer:info.buyer||'',notes:info.notes||'',createdAt:new Date().toISOString()});
+  updateItem(invId,{status:'sold'});saveDB();
+}
+function deleteSale(sid){
+  const s=DB.sales.find(x=>x.id===sid);
+  if(s){DB.sales=DB.sales.filter(x=>x.id!==sid);updateItem(s.inventoryId,{status:'in_stock'});saveDB()}
+}
+
+// ---- Stats ----
+function getStats(){
+  const inv=DB.inventory;const sls=DB.sales;
+  const inStock=inv.filter(i=>i.status==='in_stock');
+  return{
+    totalInvested:inv.reduce((s,i)=>s+i.purchasePrice,0),
+    inStockValue:inStock.reduce((s,i)=>s+i.purchasePrice,0),
+    totalRevenue:sls.reduce((s,i)=>s+i.salePrice,0),
+    totalProfit:sls.reduce((s,i)=>s+i.profit,0),
+    inStockCount:inStock.length,soldCount:sls.length,totalItems:inv.length
+  };
+}
+function getMonthlyProfit(yr){
+  const m=Array(12).fill(0);
+  DB.sales.filter(s=>new Date(s.saleDate).getFullYear()===yr).forEach(s=>{m[new Date(s.saleDate).getMonth()]+=s.profit});
+  return m;
+}
+function getMonthlyRevenue(yr){
+  const m=Array(12).fill(0);
+  DB.sales.filter(s=>new Date(s.saleDate).getFullYear()===yr).forEach(s=>{m[new Date(s.saleDate).getMonth()]+=s.salePrice});
+  return m;
+}
+function getYearlyStats(yr){
+  const ys=DB.sales.filter(s=>new Date(s.saleDate).getFullYear()===yr);
+  const yi=DB.inventory.filter(i=>new Date(i.createdAt).getFullYear()===yr);
+  const rev=ys.reduce((s,i)=>s+i.salePrice,0);
+  const cost=ys.reduce((s,i)=>s+i.purchasePrice,0);
+  const profit=ys.reduce((s,i)=>s+i.profit,0);
+  const catMap={};
+  ys.forEach(s=>{if(!catMap[s.category])catMap[s.category]={rev:0,profit:0,count:0};
+    catMap[s.category].rev+=s.salePrice;catMap[s.category].profit+=s.profit;catMap[s.category].count++});
+  return{rev,cost,profit,bought:yi.length,sold:ys.length,
+    roi:cost>0?(profit/cost)*100:0,margin:rev>0?(profit/rev)*100:0,
+    monthly:getMonthlyProfit(yr),monthlyRev:getMonthlyRevenue(yr),
+    byCategory:Object.entries(catMap).map(([cat,v])=>({cat,...v})).sort((a,b)=>b.profit-a.profit)};
+}
+function getYears(){
+  const y=new Set();
+  DB.sales.forEach(s=>y.add(new Date(s.saleDate).getFullYear()));
+  DB.inventory.forEach(i=>y.add(new Date(i.createdAt).getFullYear()));
+  if(!y.size)y.add(new Date().getFullYear());
+  return[...y].sort((a,b)=>b-a);
+}
+
+// ---- Formatters ----
+function f$(n){
+  n=n||0;const a=Math.abs(n);const s=a.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  return(n<0?'-$':'$')+s;
+}
+function fDate(d){
+  if(!d)return'—';
+  try{const dt=new Date(d+(d.includes('T')?'':'T00:00:00'));
+  return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}catch{return d}
+}
+function fPct(n){return(n||0).toFixed(1)+'%'}
+function esc(s){
+  if(s==null)return'';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ---- Sidebar ----
+let sbCollapsed=false;
+function toggleSidebar(){
+  sbCollapsed=!sbCollapsed;
+  document.getElementById('sidebar').classList.toggle('collapsed',sbCollapsed);
+  document.getElementById('main-content').classList.toggle('expanded',sbCollapsed);
+  document.getElementById('sidebar-toggle').innerHTML=sbCollapsed?'&#8250;':'&#8249;';
+}
+function updateSB(){
+  const st=getStats();
+  document.getElementById('sb-stock').textContent=st.inStockCount;
+  const el=document.getElementById('sb-profit');
+  el.textContent=f$(st.totalProfit);
+  el.className='val'+(st.totalProfit<0?' neg':'');
+}
+
+// ---- Navigation ----
+let currentSec='dashboard';
+let invF={search:'',status:'all',cat:'all',sort:'date'};
+let slsF={search:'',year:'all',cat:'all',sort:'date'};
+let rptYear=new Date().getFullYear();
+
+function navigate(sec){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('section-'+sec).classList.add('active');
+  document.querySelector('[data-sec="'+sec+'"]').classList.add('active');
+  currentSec=sec;
+  renderSec(sec);
+}
+function renderSec(s){
+  if(s==='dashboard')renderDash();
+  else if(s==='inventory')renderInv();
+  else if(s==='sales')renderSales();
+  else if(s==='reports')renderReports();
+  else if(s==='calculator')renderCalc();
+}
+
+// ---- Dashboard ----
+function renderDash(){
+  const st=getStats();const yr=new Date().getFullYear();
+  const mp=getMonthlyProfit(yr);const maxBar=Math.max(...mp.map(Math.abs),1);
+  const recentSales=[...DB.sales].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,5);
+  const recentBuys=[...DB.inventory].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,5);
+  const catMap={};DB.sales.forEach(s=>{catMap[s.category]=(catMap[s.category]||0)+s.profit});
+  const topCat=Object.entries(catMap).sort((a,b)=>b[1]-a[1])[0];
+  const avgProfit=st.soldCount>0?st.totalProfit/st.soldCount:0;
+
+  document.getElementById('dashboard-content').innerHTML=`
+  <div class="page-header">
+    <div><div class="page-title">Dashboard</div><div class="page-subtitle">Business overview &mdash; ${yr}</div></div>
+    <button class="btn btn-primary" onclick="navigate('inventory')">+ Add Purchase</button>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-label">Total Invested</div><div class="stat-value blue">${f$(st.totalInvested)}</div><div class="stat-sub">${st.totalItems} items purchased</div></div>
+    <div class="stat-card"><div class="stat-label">Total Revenue</div><div class="stat-value">${f$(st.totalRevenue)}</div><div class="stat-sub">${st.soldCount} items sold</div></div>
+    <div class="stat-card"><div class="stat-label">Total Profit</div><div class="stat-value ${st.totalProfit>=0?'green':'red'}">${f$(st.totalProfit)}</div><div class="stat-sub">${st.soldCount>0?fPct((st.totalProfit/st.totalRevenue)*100)+' margin':'No sales yet'}</div></div>
+    <div class="stat-card"><div class="stat-label">In Stock Value</div><div class="stat-value">${f$(st.inStockValue)}</div><div class="stat-sub">${st.inStockCount} items in stock</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">&#128197; ${yr} Monthly Profit</div>
+      <div class="mini-chart">${mp.map((v,i)=>{const h=Math.round((Math.abs(v)/maxBar)*54)||2;return'<div class="mini-bar'+(v<0?' neg':'')+'" style="height:'+h+'px" data-tip="'+MONTHS[i]+': '+f$(v)+'"></div>'}).join('')}</div>
+      <div class="mini-labels">${MONTHS.map(m=>'<div class="mini-label">'+m[0]+'</div>').join('')}</div>
+    </div>
+    <div class="card">
+      <div class="card-title">&#127942; Quick Stats</div>
+      ${topCat?'<div style="margin-bottom:12px"><div style="font-size:11px;color:var(--gray-500);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Top Category</div><div style="font-size:15px;font-weight:600">'+esc(topCat[0])+' <span style="color:var(--green)">'+f$(topCat[1])+'</span></div></div>':''}
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px solid var(--gray-100)"><span style="color:var(--gray-600)">Avg Profit / Sale</span><span style="font-weight:600;color:${avgProfit>=0?'var(--green)':'var(--red)'}">${st.soldCount>0?f$(avgProfit):'—'}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px solid var(--gray-100)"><span style="color:var(--gray-600)">Overall ROI</span><span style="font-weight:600">${st.totalInvested>0?fPct((st.totalProfit/st.totalInvested)*100):'—'}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:7px 0"><span style="color:var(--gray-600)">Items Sold</span><span style="font-weight:600">${st.soldCount}</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="grid-2" style="margin-top:20px">
+    <div class="card">
+      <div class="card-title">&#128176; Recent Sales</div>
+      ${recentSales.length?recentSales.map(s=>'<div class="list-item"><div><div class="li-name">'+esc(s.itemName)+'</div><div class="li-sub">'+fDate(s.saleDate)+' &middot; '+esc(s.category)+'</div></div><div class="li-amount" style="color:'+(s.profit>=0?'var(--green)':'var(--red)')+'">'+f$(s.profit)+'</div></div>').join(''):'<div class="empty-state" style="padding:24px 0"><div class="empty-icon">&#128176;</div><p>No sales yet</p></div>'}
+      ${recentSales.length?'<div style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="navigate(\'sales\')">View All Sales &rarr;</button></div>':''}
+    </div>
+    <div class="card">
+      <div class="card-title">&#128230; Recent Purchases</div>
+      ${recentBuys.length?recentBuys.map(i=>'<div class="list-item"><div><div class="li-name">'+esc(i.name)+'</div><div class="li-sub">'+fDate(i.purchaseDate)+' &middot; <span class="badge '+(i.status==='in_stock'?'badge-green':'badge-gray')+'">'+(i.status==='in_stock'?'In Stock':'Sold')+'</span></div></div><div class="li-amount">'+f$(i.purchasePrice)+'</div></div>').join(''):'<div class="empty-state" style="padding:24px 0"><div class="empty-icon">&#128230;</div><p>No purchases yet</p></div>'}
+      ${recentBuys.length?'<div style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="navigate(\'inventory\')">View All Inventory &rarr;</button></div>':''}
+    </div>
+  </div>`;
+}
+
+// ---- Inventory ----
+function renderInv(){
+  let items=[...DB.inventory];
+  const{search,status,cat,sort}=invF;
+  if(search){const q=search.toLowerCase();items=items.filter(i=>(i.name||'').toLowerCase().includes(q)||(i.make||'').toLowerCase().includes(q)||(i.model||'').toLowerCase().includes(q))}
+  if(status!=='all')items=items.filter(i=>i.status===status);
+  if(cat!=='all')items=items.filter(i=>i.category===cat);
+  if(sort==='date')items.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+  else if(sort==='price-asc')items.sort((a,b)=>a.purchasePrice-b.purchasePrice);
+  else if(sort==='price-desc')items.sort((a,b)=>b.purchasePrice-a.purchasePrice);
+  else if(sort==='name')items.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  const inStockCount=DB.inventory.filter(i=>i.status==='in_stock').length;
+
+  document.getElementById('inventory-content').innerHTML=`
+  <div class="page-header">
+    <div><div class="page-title">Inventory</div><div class="page-subtitle">${inStockCount} in stock &middot; ${DB.inventory.length} total</div></div>
+    <button class="btn btn-primary" onclick="openAddModal()">+ Add Purchase</button>
+  </div>
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <input type="text" class="search-input" style="min-width:180px;flex:1" placeholder="Search name, make, model&hellip;" value="${esc(search)}" oninput="invF.search=this.value;renderInv()">
+        <select class="search-input" style="min-width:120px" onchange="invF.status=this.value;renderInv()">
+          <option value="all"${status==='all'?' selected':''}>All Status</option>
+          <option value="in_stock"${status==='in_stock'?' selected':''}>In Stock</option>
+          <option value="sold"${status==='sold'?' selected':''}>Sold</option>
+        </select>
+        <select class="search-input" style="min-width:140px" onchange="invF.cat=this.value;renderInv()">
+          <option value="all"${cat==='all'?' selected':''}>All Categories</option>
+          ${CATS.map(c=>'<option value="'+c+'"'+(cat===c?' selected':'')+'>'+c+'</option>').join('')}
+        </select>
+        <select class="search-input" style="min-width:130px" onchange="invF.sort=this.value;renderInv()">
+          <option value="date"${sort==='date'?' selected':''}>Newest First</option>
+          <option value="name"${sort==='name'?' selected':''}>Name A&ndash;Z</option>
+          <option value="price-asc"${sort==='price-asc'?' selected':''}>Price: Low&ndash;High</option>
+          <option value="price-desc"${sort==='price-desc'?' selected':''}>Price: High&ndash;Low</option>
+        </select>
+      </div>
+    </div>
+    ${items.length===0?'<div class="empty-state"><div class="empty-icon">&#128230;</div><h3>No items found</h3><p>'+(DB.inventory.length===0?'Add your first purchase to get started.':'Try adjusting your filters.')+'</p></div>':
+    '<div class="table-wrapper"><table><thead><tr><th>Item</th><th>Category</th><th>Condition</th><th>Purchase Date</th><th>Cost</th><th>Status</th><th>Actions</th></tr></thead><tbody>'+
+    items.map(item=>'<tr><td><div style="font-weight:500">'+esc(item.name)+'</div>'+
+      (item.year||item.make||item.model?'<div style="font-size:12px;color:var(--gray-500)">'+[item.year,item.make,item.model].filter(Boolean).map(esc).join(' ')+'</div>':'')+
+      (item.seller?'<div style="font-size:11px;color:var(--gray-400)">From: '+esc(item.seller)+'</div>':'')+
+      '</td><td><span class="badge '+catCls(item.category)+'">'+esc(item.category)+'</span></td>'+
+      '<td><span class="badge '+condCls(item.condition)+'">'+esc(item.condition||'—')+'</span></td>'+
+      '<td>'+fDate(item.purchaseDate)+'</td>'+
+      '<td style="font-weight:600">'+f$(item.purchasePrice)+'</td>'+
+      '<td><span class="badge '+(item.status==='in_stock'?'badge-green':'badge-gray')+'">'+(item.status==='in_stock'?'In Stock':'Sold')+'</span></td>'+
+      '<td><div class="actions">'+
+        (item.status==='in_stock'?'<button class="btn btn-sm btn-success" onclick="openSellModal('+item.id+')">Sell</button>':'')+
+        '<button class="btn btn-sm btn-ghost" onclick="openEditModal('+item.id+')">Edit</button>'+
+        '<button class="btn btn-sm btn-danger" onclick="confirmDelItem('+item.id+')">Del</button>'+
+      '</div></td></tr>').join('')+
+    '</tbody></table></div>'}
+  </div>`;
+}
+
+// ---- Sales ----
+function renderSales(){
+  let sales=[...DB.sales];
+  const{search,year,cat,sort}=slsF;
+  if(search){const q=search.toLowerCase();sales=sales.filter(s=>(s.itemName||'').toLowerCase().includes(q)||(s.buyer||'').toLowerCase().includes(q))}
+  if(year!=='all')sales=sales.filter(s=>new Date(s.saleDate).getFullYear()===parseInt(year));
+  if(cat!=='all')sales=sales.filter(s=>s.category===cat);
+  if(sort==='date')sales.sort((a,b)=>new Date(b.saleDate)-new Date(a.saleDate));
+  else if(sort==='profit-desc')sales.sort((a,b)=>b.profit-a.profit);
+  else if(sort==='profit-asc')sales.sort((a,b)=>a.profit-b.profit);
+  else if(sort==='price-desc')sales.sort((a,b)=>b.salePrice-a.salePrice);
+  const totRev=sales.reduce((s,i)=>s+i.salePrice,0);
+  const totCost=sales.reduce((s,i)=>s+i.purchasePrice,0);
+  const totProfit=sales.reduce((s,i)=>s+i.profit,0);
+  const avgP=sales.length?totProfit/sales.length:0;
+  const years=getYears();
+
+  document.getElementById('sales-content').innerHTML=`
+  <div class="page-header"><div><div class="page-title">Sales</div><div class="page-subtitle">${DB.sales.length} total sales</div></div></div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-label">Sales (filtered)</div><div class="stat-value blue">${sales.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Revenue</div><div class="stat-value">${f$(totRev)}</div></div>
+    <div class="stat-card"><div class="stat-label">Total Cost</div><div class="stat-value">${f$(totCost)}</div></div>
+    <div class="stat-card"><div class="stat-label">Profit</div><div class="stat-value ${totProfit>=0?'green':'red'}">${f$(totProfit)}</div></div>
+    <div class="stat-card"><div class="stat-label">Avg Profit/Sale</div><div class="stat-value ${avgP>=0?'green':'red'}">${f$(avgP)}</div></div>
+  </div>
+  <div class="card">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <input type="text" class="search-input" style="min-width:180px;flex:1" placeholder="Search item or buyer&hellip;" value="${esc(search)}" oninput="slsF.search=this.value;renderSales()">
+        <select class="search-input" style="min-width:100px" onchange="slsF.year=this.value;renderSales()">
+          <option value="all"${year==='all'?' selected':''}>All Years</option>
+          ${years.map(y=>'<option value="'+y+'"'+(year==y?' selected':'')+'>'+y+'</option>').join('')}
+        </select>
+        <select class="search-input" style="min-width:140px" onchange="slsF.cat=this.value;renderSales()">
+          <option value="all"${cat==='all'?' selected':''}>All Categories</option>
+          ${CATS.map(c=>'<option value="'+c+'"'+(cat===c?' selected':'')+'>'+c+'</option>').join('')}
+        </select>
+        <select class="search-input" style="min-width:140px" onchange="slsF.sort=this.value;renderSales()">
+          <option value="date"${sort==='date'?' selected':''}>Newest First</option>
+          <option value="profit-desc"${sort==='profit-desc'?' selected':''}>Profit: High&ndash;Low</option>
+          <option value="profit-asc"${sort==='profit-asc'?' selected':''}>Profit: Low&ndash;High</option>
+          <option value="price-desc"${sort==='price-desc'?' selected':''}>Sale Price High</option>
+        </select>
+      </div>
+    </div>
+    ${sales.length===0?'<div class="empty-state"><div class="empty-icon">&#128176;</div><h3>No sales found</h3><p>'+(DB.sales.length===0?'Record your first sale from the Inventory tab.':'Try adjusting your filters.')+'</p></div>':
+    '<div class="table-wrapper"><table><thead><tr><th>Item</th><th>Category</th><th>Sale Date</th><th>Cost</th><th>Sale Price</th><th>Profit</th><th>Margin</th><th>Buyer</th><th></th></tr></thead><tbody>'+
+    sales.map(s=>{const mg=s.salePrice>0?(s.profit/s.salePrice)*100:0;const mc=mg>=20?'badge-green':mg>=0?'badge-blue':'badge-red';
+    return'<tr><td style="font-weight:500">'+esc(s.itemName)+'</td><td><span class="badge '+catCls(s.category)+'">'+esc(s.category)+'</span></td><td>'+fDate(s.saleDate)+'</td><td>'+f$(s.purchasePrice)+'</td><td style="font-weight:600">'+f$(s.salePrice)+'</td><td style="font-weight:600;color:'+(s.profit>=0?'var(--green)':'var(--red)')+'">'+f$(s.profit)+'</td><td><span class="badge '+mc+'">'+fPct(mg)+'</span></td><td>'+(esc(s.buyer)||'&mdash;')+'</td><td><button class="btn btn-sm btn-danger" onclick="confirmDelSale('+s.id+')">Del</button></td></tr>'}).join('')+
+    '</tbody><tfoot><tr><td colspan="3">Totals ('+sales.length+' sales)</td><td>'+f$(totCost)+'</td><td>'+f$(totRev)+'</td><td style="color:'+(totProfit>=0?'var(--green)':'var(--red)')+'">'+f$(totProfit)+'</td><td>'+(totRev>0?fPct((totProfit/totRev)*100):'&mdash;')+'</td><td colspan="2"></td></tr></tfoot></table></div>'}
+  </div>`;
+}
+
+// ---- Reports ----
+function renderReports(){
+  const years=getYears();if(!years.includes(rptYear))rptYear=years[0];
+  const ys=getYearlyStats(rptYear);
+  const maxMR=Math.max(...ys.monthlyRev,1);
+  const maxMP=Math.max(...ys.monthly.map(Math.abs),1);
+  const maxCP=ys.byCategory.length?Math.max(...ys.byCategory.map(c=>Math.abs(c.profit)),1):1;
+  const topSales=[...DB.sales].filter(s=>new Date(s.saleDate).getFullYear()===rptYear).sort((a,b)=>b.profit-a.profit).slice(0,5);
+
+  document.getElementById('reports-content').innerHTML=`
+  <div class="page-header">
+    <div><div class="page-title">Reports</div><div class="page-subtitle">Financial analytics</div></div>
+    <select class="search-input" onchange="rptYear=parseInt(this.value);renderReports()">
+      ${years.map(y=>'<option value="'+y+'"'+(y===rptYear?' selected':'')+'>'+y+'</option>').join('')}
+    </select>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-label">Revenue</div><div class="stat-value">${f$(ys.rev)}</div></div>
+    <div class="stat-card"><div class="stat-label">Cost Basis</div><div class="stat-value">${f$(ys.cost)}</div></div>
+    <div class="stat-card"><div class="stat-label">Profit</div><div class="stat-value ${ys.profit>=0?'green':'red'}">${f$(ys.profit)}</div></div>
+    <div class="stat-card"><div class="stat-label">Items Bought</div><div class="stat-value blue">${ys.bought}</div></div>
+    <div class="stat-card"><div class="stat-label">Items Sold</div><div class="stat-value">${ys.sold}</div></div>
+    <div class="stat-card"><div class="stat-label">ROI</div><div class="stat-value ${ys.roi>=0?'green':'red'}">${fPct(ys.roi)}</div></div>
+    <div class="stat-card"><div class="stat-label">Margin</div><div class="stat-value">${fPct(ys.margin)}</div></div>
+  </div>
+  <div class="grid-2" style="margin-bottom:20px">
+    <div class="card">
+      <div class="card-title">&#128197; Monthly Performance &mdash; ${rptYear}</div>
+      ${MONTHS.map((m,i)=>'<div class="month-row"><div style="font-weight:600;color:var(--gray-700)">'+m+'</div><div><div class="pb-bg" style="margin-bottom:2px"><div class="pb-fill" style="width:'+Math.round((ys.monthlyRev[i]/maxMR)*100)+'%"></div></div><div class="pb-bg"><div class="pb-fill '+(ys.monthly[i]<0?'red':'green')+'" style="width:'+Math.round((Math.abs(ys.monthly[i])/maxMP)*100)+'%"></div></div></div><div class="month-amounts"><div style="color:var(--gray-600)">'+f$(ys.monthlyRev[i])+'</div><div style="color:'+(ys.monthly[i]>=0?'var(--green)':'var(--red)')+';font-weight:600">'+f$(ys.monthly[i])+'</div></div></div>').join('')}
+      <div style="font-size:11px;color:var(--gray-400);margin-top:8px">Blue = Revenue &nbsp;&middot;&nbsp; Green/Red = Profit</div>
+    </div>
+    <div class="card">
+      <div class="card-title">&#127991;&#65039; Profit by Category</div>
+      ${ys.byCategory.length?ys.byCategory.map(c=>'<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span style="font-weight:500">'+esc(c.cat)+'</span><span style="color:'+(c.profit>=0?'var(--green)':'var(--red)')+';font-weight:600">'+f$(c.profit)+'</span></div><div class="pb-bg"><div class="pb-fill'+(c.profit<0?' red':'')+'" style="width:'+Math.round((Math.abs(c.profit)/maxCP)*100)+'%"></div></div><div style="font-size:11px;color:var(--gray-400);margin-top:2px">'+c.count+' sale'+(c.count!==1?'s':'')+' &middot; '+f$(c.rev)+' revenue</div></div>').join(''):'<div class="empty-state" style="padding:30px 0"><p>No sales data for this year</p></div>'}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">&#127942; Top Profitable Sales &mdash; ${rptYear}</div>
+    ${topSales.length?topSales.map((s,i)=>{const rc=i===0?'gold':i===1?'silver':i===2?'bronze':'';return'<div class="top-sale"><div class="rank-badge '+rc+'">'+(i+1)+'</div><div style="flex:1"><div style="font-weight:500;font-size:14px">'+esc(s.itemName)+'</div><div style="font-size:12px;color:var(--gray-500)">'+fDate(s.saleDate)+' &middot; '+esc(s.category)+'</div></div><div style="text-align:right"><div style="font-weight:700;color:'+(s.profit>=0?'var(--green)':'var(--red)')+'">'+f$(s.profit)+'</div><div style="font-size:12px;color:var(--gray-500)">'+f$(s.salePrice)+' sale &middot; '+fPct(s.salePrice>0?(s.profit/s.salePrice)*100:0)+' margin</div></div></div>'}).join(''):'<div class="empty-state" style="padding:30px 0"><p>No sales for this year</p></div>'}
+  </div>`;
+}
+
+// ---- Calculator ----
+let calcTab='profit';
+let pfItems=[{cost:'',price:''},{cost:'',price:''}];
+
+function renderCalc(){
+  document.getElementById('calculator-content').innerHTML=`
+  <div class="page-header"><div><div class="page-title">Calculator</div><div class="page-subtitle">Business financial tools</div></div></div>
+  <div class="calc-tabs">
+    <button class="calc-tab${calcTab==='profit'?' active':''}" onclick="switchTab('profit')">&#128181; Profit/Loss</button>
+    <button class="calc-tab${calcTab==='target'?' active':''}" onclick="switchTab('target')">&#127919; Target Price</button>
+    <button class="calc-tab${calcTab==='breakeven'?' active':''}" onclick="switchTab('breakeven')">&#9878;&#65039; Break-Even</button>
+    <button class="calc-tab${calcTab==='portfolio'?' active':''}" onclick="switchTab('portfolio')">&#128203; Portfolio</button>
+  </div>
+  <div id="calc-profit" class="calc-section${calcTab==='profit'?' active':''}">
+    <div class="card"><div class="card-title">&#128181; Profit / Loss Calculator</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Purchase Price ($)</label><input type="number" class="form-control" id="cp-buy" placeholder="0.00" oninput="calcPL()"></div>
+      <div class="form-group"><label class="form-label">Selling Price ($)</label><input type="number" class="form-control" id="cp-sell" placeholder="0.00" oninput="calcPL()"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Fees / Platform ($)</label><input type="number" class="form-control" id="cp-fees" placeholder="0.00" oninput="calcPL()"></div>
+      <div class="form-group"><label class="form-label">Repairs / Cleaning ($)</label><input type="number" class="form-control" id="cp-rep" placeholder="0.00" oninput="calcPL()"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Tax ($)</label><input type="number" class="form-control" id="cp-tax" placeholder="0.00" oninput="calcPL()" style="max-width:220px"></div>
+    <div id="pl-result"></div></div>
+  </div>
+  <div id="calc-target" class="calc-section${calcTab==='target'?' active':''}">
+    <div class="card"><div class="card-title">&#127919; Target Price Calculator</div>
+    <div class="form-group"><label class="form-label">Total Cost Basis ($)</label><input type="number" class="form-control" id="ct-cost" placeholder="0.00" oninput="calcTarget()" style="max-width:300px"></div>
+    <div class="form-row" style="align-items:end;gap:12px">
+      <div class="form-group" style="margin-bottom:0"><label class="form-label">Desired Profit ($)</label><input type="number" class="form-control" id="ct-amt" placeholder="0.00" oninput="calcTarget()"></div>
+      <div style="padding-bottom:16px;font-weight:600;color:var(--gray-400)">OR</div>
+      <div class="form-group" style="margin-bottom:0"><label class="form-label">Desired Margin (%)</label><input type="number" class="form-control" id="ct-pct" placeholder="0.0" oninput="calcTarget()"></div>
+    </div>
+    <div id="target-result"></div></div>
+  </div>
+  <div id="calc-breakeven" class="calc-section${calcTab==='breakeven'?' active':''}">
+    <div class="card"><div class="card-title">&#9878;&#65039; Break-Even Calculator</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Monthly Fixed Costs ($)</label><input type="number" class="form-control" id="cb-fixed" placeholder="0.00" oninput="calcBE()"><div class="form-hint">Storage, insurance, tools&hellip;</div></div>
+      <div class="form-group"><label class="form-label">Avg Item Cost ($)</label><input type="number" class="form-control" id="cb-var" placeholder="0.00" oninput="calcBE()"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Avg Sale Price ($)</label><input type="number" class="form-control" id="cb-price" placeholder="0.00" oninput="calcBE()" style="max-width:300px"></div>
+    <div id="be-result"></div></div>
+  </div>
+  <div id="calc-portfolio" class="calc-section${calcTab==='portfolio'?' active':''}">
+    <div class="card"><div class="card-title">&#128203; Multi-Item Portfolio Calculator</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 32px;gap:8px;margin-bottom:6px">
+      <div style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.05em">Cost ($)</div>
+      <div style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.05em">Sale Price ($)</div>
+      <div></div>
+    </div>
+    <div id="pf-items"></div>
+    <button class="btn btn-ghost btn-sm" onclick="addPfItem()" style="margin-top:8px">+ Add Item</button>
+    <div id="pf-result"></div></div>
+  </div>`;
+  renderPfItems();
+}
+
+function switchTab(tab){
+  calcTab=tab;
+  document.querySelectorAll('.calc-tab').forEach((t,i)=>{t.classList.toggle('active',['profit','target','breakeven','portfolio'][i]===tab)});
+  document.querySelectorAll('.calc-section').forEach(s=>{s.classList.toggle('active',s.id==='calc-'+tab)});
+}
+
+function calcPL(){
+  const buy=parseFloat(document.getElementById('cp-buy')?.value)||0;
+  const sell=parseFloat(document.getElementById('cp-sell')?.value)||0;
+  const fees=parseFloat(document.getElementById('cp-fees')?.value)||0;
+  const rep=parseFloat(document.getElementById('cp-rep')?.value)||0;
+  const tax=parseFloat(document.getElementById('cp-tax')?.value)||0;
+  const totCost=buy+fees+rep+tax;const profit=sell-totCost;
+  const margin=sell>0?(profit/sell)*100:0;const roi=totCost>0?(profit/totCost)*100:0;
+  const el=document.getElementById('pl-result');if(!el)return;
+  if(!sell&&!buy){el.innerHTML='';return}
+  el.innerHTML='<div class="result-grid"><div class="result-item"><div class="result-label">Total Cost</div><div class="result-value">'+f$(totCost)+'</div></div><div class="result-item"><div class="result-label">Net Profit</div><div class="result-value '+(profit>=0?'green':'red')+'">'+f$(profit)+'</div></div><div class="result-item"><div class="result-label">Margin %</div><div class="result-value '+(margin>=0?'blue':'red')+'">'+fPct(margin)+'</div></div><div class="result-item"><div class="result-label">ROI</div><div class="result-value '+(roi>=0?'green':'red')+'">'+fPct(roi)+'</div></div></div>'+(profit<0?'<div class="alert alert-danger">&#9888;&#65039; Selling at a loss of '+f$(Math.abs(profit))+'</div>':'');
+}
+
+function calcTarget(){
+  const cost=parseFloat(document.getElementById('ct-cost')?.value)||0;
+  const amt=parseFloat(document.getElementById('ct-amt')?.value);
+  const pct=parseFloat(document.getElementById('ct-pct')?.value);
+  const el=document.getElementById('target-result');if(!el||!cost){if(el)el.innerHTML='';return}
+  let price,margin;
+  if(!isNaN(amt)){price=cost+amt;margin=price>0?(amt/price)*100:0}
+  else if(!isNaN(pct)){const m=pct/100;price=m>=1?cost*10:cost/(1-m);margin=pct}
+  else{el.innerHTML='';return}
+  const profit=price-cost;
+  el.innerHTML='<div class="result-grid"><div class="result-item"><div class="result-label">Min Sale Price</div><div class="result-value blue">'+f$(price)+'</div></div><div class="result-item"><div class="result-label">Expected Profit</div><div class="result-value green">'+f$(profit)+'</div></div><div class="result-item"><div class="result-label">Margin %</div><div class="result-value">'+fPct(margin)+'</div></div></div>';
+}
+
+function calcBE(){
+  const fixed=parseFloat(document.getElementById('cb-fixed')?.value)||0;
+  const varC=parseFloat(document.getElementById('cb-var')?.value)||0;
+  const price=parseFloat(document.getElementById('cb-price')?.value)||0;
+  const el=document.getElementById('be-result');if(!el)return;
+  if(!fixed||!price){el.innerHTML='';return}
+  const cm=price-varC;
+  if(cm<=0){el.innerHTML='<div class="alert alert-danger">Sale price must be higher than item cost</div>';return}
+  const units=fixed/cm;
+  el.innerHTML='<div class="result-grid"><div class="result-item"><div class="result-label">Items/Month</div><div class="result-value blue">'+units.toFixed(1)+'</div></div><div class="result-item"><div class="result-label">Revenue Needed</div><div class="result-value">'+f$(units*price)+'</div></div><div class="result-item"><div class="result-label">Contribution Margin</div><div class="result-value green">'+f$(cm)+'</div></div></div>';
+}
+
+function addPfItem(){pfItems.push({cost:'',price:''});renderPfItems();calcPortfolio()}
+function removePfItem(i){if(pfItems.length<=1)return;pfItems.splice(i,1);renderPfItems();calcPortfolio()}
+function renderPfItems(){
+  const el=document.getElementById('pf-items');if(!el)return;
+  el.innerHTML=pfItems.map((p,i)=>'<div class="pf-item"><input type="number" class="form-control" placeholder="Cost" value="'+esc(p.cost)+'" oninput="pfItems['+i+'].cost=this.value;calcPortfolio()"><input type="number" class="form-control" placeholder="Sale price" value="'+esc(p.price)+'" oninput="pfItems['+i+'].price=this.value;calcPortfolio()"><button class="btn btn-sm btn-danger" onclick="removePfItem('+i+')"'+(pfItems.length<=1?' disabled':'')+'>&#10005;</button></div>').join('');
+}
+function calcPortfolio(){
+  const el=document.getElementById('pf-result');if(!el)return;
+  const items=pfItems.map(p=>({cost:parseFloat(p.cost)||0,price:parseFloat(p.price)||0})).filter(p=>p.cost>0||p.price>0);
+  if(!items.length){el.innerHTML='';return}
+  const totC=items.reduce((s,i)=>s+i.cost,0);const totR=items.reduce((s,i)=>s+i.price,0);
+  const totP=totR-totC;const mg=totR>0?(totP/totR)*100:0;const roi=totC>0?(totP/totC)*100:0;
+  el.innerHTML='<div class="result-grid"><div class="result-item"><div class="result-label">Total Cost</div><div class="result-value">'+f$(totC)+'</div></div><div class="result-item"><div class="result-label">Total Revenue</div><div class="result-value blue">'+f$(totR)+'</div></div><div class="result-item"><div class="result-label">Total Profit</div><div class="result-value '+(totP>=0?'green':'red')+'">'+f$(totP)+'</div></div><div class="result-item"><div class="result-label">Margin %</div><div class="result-value">'+fPct(mg)+'</div></div><div class="result-item"><div class="result-label">ROI</div><div class="result-value '+(roi>=0?'green':'red')+'">'+fPct(roi)+'</div></div></div>';
+}
+
+// ---- Modals ----
+function openModal(title,body,footer){
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-body').innerHTML=body;
+  document.getElementById('modal-footer').innerHTML=footer;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open')}
+function handleOverlayClick(e){if(e.target===document.getElementById('modal-overlay'))closeModal()}
+
+function itemFormBody(item){
+  const today=new Date().toISOString().split('T')[0];
+  return`<div class="form-row">
+    <div class="form-group"><label class="form-label">Item Name *</label><input type="text" class="form-control" id="f-name" value="${esc(item?item.name:'')}" placeholder="e.g. Johnson 90hp Motor"></div>
+    <div class="form-group"><label class="form-label">Category</label><select class="form-control" id="f-cat">${CATS.map(c=>'<option value="'+c+'"'+(item&&item.category===c?' selected':'')+'>'+c+'</option>').join('')}</select></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Purchase Price ($) *</label><input type="number" class="form-control" id="f-price" value="${esc(item?item.purchasePrice:'')}" placeholder="0.00"></div>
+    <div class="form-group"><label class="form-label">Purchase Date</label><input type="date" class="form-control" id="f-date" value="${esc(item?item.purchaseDate||'':today)}"></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Condition</label><select class="form-control" id="f-cond">${CONDS.map(c=>'<option value="'+c+'"'+(item&&item.condition===c?' selected':'')+'>'+c+'</option>').join('')}</select></div>
+    <div class="form-group"><label class="form-label">Seller</label><input type="text" class="form-control" id="f-seller" value="${esc(item?item.seller||'')}" placeholder="Name or marketplace"></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group"><label class="form-label">Year</label><input type="text" class="form-control" id="f-year" value="${esc(item?item.year||'')}" placeholder="e.g. 2015"></div>
+    <div class="form-group"><label class="form-label">Make</label><input type="text" class="form-control" id="f-make" value="${esc(item?item.make||'')}" placeholder="e.g. Yamaha"></div>
+  </div>
+  <div class="form-group"><label class="form-label">Model</label><input type="text" class="form-control" id="f-model" value="${esc(item?item.model||'')}" placeholder="e.g. F90"></div>
+  <div class="form-group"><label class="form-label">Notes</label><textarea class="form-control" id="f-notes" rows="2">${esc(item?item.notes||'')}</textarea></div>`;
+}
+function getFormData(){
+  return{name:document.getElementById('f-name').value.trim(),category:document.getElementById('f-cat').value,
+    purchasePrice:document.getElementById('f-price').value,purchaseDate:document.getElementById('f-date').value,
+    condition:document.getElementById('f-cond').value,seller:document.getElementById('f-seller').value.trim(),
+    year:document.getElementById('f-year').value.trim(),make:document.getElementById('f-make').value.trim(),
+    model:document.getElementById('f-model').value.trim(),notes:document.getElementById('f-notes').value.trim()};
+}
+
+function openAddModal(){
+  openModal('Add Purchase',itemFormBody(null),'<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="submitAdd()">Add Purchase</button>');
+}
+function submitAdd(){
+  const d=getFormData();if(!d.name){alert('Please enter an item name.');return}if(!d.purchasePrice){alert('Please enter a purchase price.');return}
+  addItem(d);closeModal();renderInv();
+}
+function openEditModal(id){
+  const item=DB.inventory.find(x=>x.id===id);if(!item)return;
+  openModal('Edit Item',itemFormBody(item),'<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="submitEdit('+id+')">Save Changes</button>');
+}
+function submitEdit(id){
+  const d=getFormData();if(!d.name){alert('Please enter an item name.');return}
+  updateItem(id,d);closeModal();renderInv();
+}
+function openSellModal(id){
+  const item=DB.inventory.find(x=>x.id===id);if(!item)return;
+  const today=new Date().toISOString().split('T')[0];
+  openModal('Record Sale \u2014 '+item.name,
+    '<div class="profit-preview" id="sell-preview"><div class="pp-row"><span>Purchase Price:</span><span>'+f$(item.purchasePrice)+'</span></div><div class="pp-row pp-total"><span>Profit:</span><span class="profit-val" id="pp-profit">\u2014</span></div></div>'+
+    '<div class="form-row"><div class="form-group"><label class="form-label">Sale Price ($) *</label><input type="number" class="form-control" id="f-sprice" placeholder="0.00" oninput="updateSellPreview('+item.purchasePrice+')"></div><div class="form-group"><label class="form-label">Sale Date</label><input type="date" class="form-control" id="f-sdate" value="'+today+'"></div></div>'+
+    '<div class="form-group"><label class="form-label">Buyer Name</label><input type="text" class="form-control" id="f-buyer" placeholder="Optional"></div>'+
+    '<div class="form-group"><label class="form-label">Notes</label><textarea class="form-control" id="f-snotes" rows="2"></textarea></div>',
+    '<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-success" onclick="submitSale('+id+')">Record Sale</button>');
+}
+function updateSellPreview(cost){
+  const sp=parseFloat(document.getElementById('f-sprice')?.value)||0;
+  const p=sp-cost;const el=document.getElementById('pp-profit');
+  if(el){el.textContent=f$(p);el.className='profit-val '+(p>=0?'profit':'loss')}
+}
+function submitSale(id){
+  const sp=document.getElementById('f-sprice')?.value;if(!sp){alert('Please enter a sale price.');return}
+  recordSale(id,{salePrice:sp,saleDate:document.getElementById('f-sdate').value,buyer:document.getElementById('f-buyer').value.trim(),notes:document.getElementById('f-snotes').value.trim()});
+  closeModal();renderInv();
+}
+function confirmDelItem(id){
+  const item=DB.inventory.find(x=>x.id===id);if(!item)return;
+  const rel=DB.sales.filter(s=>s.inventoryId===id).length;
+  const msg=rel>0?'Delete "'+item.name+'"? This will also delete '+rel+' related sale record(s). This cannot be undone.':'Delete "'+item.name+'"? This cannot be undone.';
+  if(confirm(msg)){deleteItem(id);renderInv()}
+}
+function confirmDelSale(sid){
+  const s=DB.sales.find(x=>x.id===sid);if(!s)return;
+  if(confirm('Delete sale of "'+s.itemName+'"? The item will be restored to In Stock.')){deleteSale(sid);renderSales()}
+}
+
+// ---- Init ----
+loadDB();updateSB();renderDash();
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+</script>
+</body>
+</html>
